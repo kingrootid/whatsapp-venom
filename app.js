@@ -6,9 +6,7 @@ const app = express()
 const port = 3000
 const { phoneNumberFormatter } = require('./helpers/formatter');
 const fs = require('fs');
-// const { format } = require('node:path');
-// const { format } = require('node:path');
-// const { body, validationResult } = require('express-validator');
+const mime = require('mime-types');
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`)
 })
@@ -26,6 +24,8 @@ con.connect(function (err) {
     if (err) throw err;
     console.log("Connected!");
 });
+// var buf = Buffer.from('abc', 'base64').toString('binary');
+// console.log(buf);
 venom
     .create('blabla')
     .then((client) => start(client, app))
@@ -33,7 +33,11 @@ venom
         console.log(erro);
     });
 async function start(client, app) {
-    client.onMessage((message) => {
+    client.onMessage(async (message) => {
+        if (message.isMedia === true || message.isMMS === true) {
+            console.log(message);
+        }
+        // console.log(message);
         if (message.body === 'Hi' && message.isGroupMsg === false) {
             client
                 .sendText(message.from, 'Welcome Venom 🕷')
@@ -46,11 +50,11 @@ async function start(client, app) {
                     // console.error('Error when sending: ', erro); //return object error
                 });
         }
-        let sql = `insert into pesan set body ='${mysql_real_escape_string(message.body)}',fr='${message.from}',status='1'`;
-        let query = con.query(sql, (err) => {
-            if (err) throw err;
-            console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
-        })
+        // let sql = `insert into pesan set body ='${mysql_real_escape_string(message.body)}',fr='${message.from}',status='1'`;
+        // let query = con.query(sql, (err) => {
+        //     if (err) throw err;
+        //     console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
+        // })
     });
     app.post('/sendText', [
         body('number').notEmpty(),
@@ -75,8 +79,8 @@ async function start(client, app) {
                     status: true,
                     response: result
                 });
-                let sql = `insert into chat set tujuan ='${formatterNumber}',keterangan='${mysql_real_escape_string(message)}',terkirim='1' `
-                let query = conn.query(sql, (err) => {
+                let sql = `insert into chat set tujuan ='${formatterNumber}',keterangan='${mysql_real_escape_string(message)}' `
+                let query = con.query(sql, (err) => {
                     if (err) throw err;
                     console.log("1 record inserted");
                 });
