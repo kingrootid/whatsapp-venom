@@ -4,7 +4,7 @@ const express = require('express')
 const { body, validationResult } = require('express-validator');
 const app = express()
 const port = 3000
-const nomor = "6285892399939@c.us";
+const client_name = "blabla";
 const { phoneNumberFormatter } = require('./helpers/formatter');
 const fs = require('fs');
 const mime = require('mime-types');
@@ -13,7 +13,8 @@ app.listen(port, () => {
 })
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+const currentDate = new Date();
+const timestamp = currentDate.getTime();
 var con = mysql.createConnection({
     host: "localhost",
     user: "root",
@@ -25,11 +26,43 @@ con.connect(function (err) {
     if (err) throw err;
     console.log("Connected!");
 });
-// var buf = Buffer.from('abc', 'base64').toString('binary');
-// console.log(buf);
 venom
-    .create('blabla')
-    .then((client) => start(client, app))
+    .create(
+        client_name,
+        (base64Qrimg, asciiQR) => {
+            console.log('Terminal qrcode: ', asciiQR);
+            console.log('base64 image string qrcode: ', base64Qrimg);
+        },
+        (statusSession) => {
+            console.log('Status Session: ', statusSession); //return isLogged || notLogged || browserClose || qrReadSuccess || qrReadFail || autocloseCalled
+        },
+        {
+            folderNameToken: 'tokens', //folder name when saving tokens
+            mkdirFolderToken: '', //folder directory tokens, just inside the venom folder, example:  { mkdirFolderToken: '/node_modules', } //will save the tokens folder in the node_modules directory
+            headless: true, // Headless chrome
+            devtools: false, // Open devtools by default
+            useChrome: true, // If false will use Chromium instance
+            debug: false, // Opens a debug session
+            logQR: true, // Logs QR automatically in terminal
+            browserArgs: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process', // <- this one doesn't works in Windows
+                '--disable-gpu'
+            ], // Parameters to be added into the chrome browser instance
+            disableSpins: true, // Will disable Spinnies animation, useful for containers (docker) for a better log
+            disableWelcome: true, // Will disable the welcoming message which appears in the beginning
+            updatesLog: true, // Logs info updates automatically in terminal
+            autoClose: 60000, // Automatically closes the venom-bot only when scanning the QR code (default 60 seconds, if you want to turn it off, assign 0 or false)
+        }
+    )
+    .then((client) => {
+        start(client, app);
+    })
     .catch((erro) => {
         console.log(erro);
     });
@@ -73,11 +106,13 @@ async function start(client, app) {
                     status: true,
                     response: result
                 });
-                let sql = `insert into chat set tujuan ='${formatterNumber}',keterangan='${message}' `
-                let query = con.query(sql, (err) => {
-                    if (err) throw err;
-                    console.log("1 record inserted");
-                });
+                console.log(result.me.wid._serialized);
+                // let sql = `insert into pesan set body ='${mysql_real_escape_string(result.text)}',sender='${result.me..from}', receiver='${message.to}', type='${message.type}', time='${message.t}' `;
+                // let query = con.query(sql, (err) => {
+                //     if (err) throw err;
+                //     console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
+                // })
+
             })
             .catch((erro) => {
                 res.status(500).json({
