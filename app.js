@@ -4,6 +4,7 @@ const express = require('express')
 const { body, validationResult } = require('express-validator');
 const app = express()
 const port = 3000
+const nomor = "6285892399939@c.us";
 const { phoneNumberFormatter } = require('./helpers/formatter');
 const fs = require('fs');
 const mime = require('mime-types');
@@ -35,26 +36,19 @@ venom
 async function start(client, app) {
     client.onMessage(async (message) => {
         if (message.isMedia === true || message.isMMS === true) {
-            console.log(message);
+            const buffer = await client.decryptFile(message);
+            // At this point you can do whatever you want with the buffer
+            // Most likely you want to write it into a file
+            const fileName = `some-file-name.${mime.extension(message.mimetype)}`;
+            await fs.writeFile(fileName, buffer, (err) => {
+            });
+        } else {
+            let sql = `insert into pesan set body ='${mysql_real_escape_string(message.body)}',sender='${message.from}', receiver='${message.to}', type='${message.type}', time='${message.t}' `;
+            let query = con.query(sql, (err) => {
+                if (err) throw err;
+                console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
+            })
         }
-        // console.log(message);
-        if (message.body === 'Hi' && message.isGroupMsg === false) {
-            client
-                .sendText(message.from, 'Welcome Venom 🕷')
-                .then((result) => {
-                    console.log('Ada pesan baru');
-                    //   console.log('Result: ', result); //return object success
-                })
-                .catch((erro) => {
-                    console.log('Ada pesan baru Tapi Error');
-                    // console.error('Error when sending: ', erro); //return object error
-                });
-        }
-        // let sql = `insert into pesan set body ='${mysql_real_escape_string(message.body)}',fr='${message.from}',status='1'`;
-        // let query = con.query(sql, (err) => {
-        //     if (err) throw err;
-        //     console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
-        // })
     });
     app.post('/sendText', [
         body('number').notEmpty(),
@@ -79,7 +73,7 @@ async function start(client, app) {
                     status: true,
                     response: result
                 });
-                let sql = `insert into chat set tujuan ='${formatterNumber}',keterangan='${mysql_real_escape_string(message)}' `
+                let sql = `insert into chat set tujuan ='${formatterNumber}',keterangan='${message}' `
                 let query = con.query(sql, (err) => {
                     if (err) throw err;
                     console.log("1 record inserted");
@@ -93,52 +87,41 @@ async function start(client, app) {
             });
 
     })
-    app.post('/sendImage', async (req, res) => {
-        var to = req.body.to
-        to = to + '@c.us'
-
-        var pesan = req.body.pesan
-        var image = req.body.imageurl
-        var image_name = req.body.image_name
-        // Send image (you can also upload an image using a valid HTTP protocol)
-        var valid = true;
-        if (req.body.to === "") {
-            valid = false;
+    app.post('/sendImages', [
+        body('number').notEmpty(),
+        body('caption').notEmpty(),
+        body('url').notEmpty(),
+    ], async (req, res) => {
+        const errors = validationResult(req).formatWith(({ msg }) => {
+            return msg;
+        });
+        if (!errors.isEmpty()) {
+            return res.status(422).json({
+                status: false,
+                message: errors.mapped()
+            })
         }
-        if (image === "") {
-            valid = false
-        }
-        if (image_name === "") {
-            valid = false
-        }
-        if (valid) {
-            await client
-                .sendImage(
-                    to,
-                    image,
-                    image_name,
-                    pesan
-                )
-                .then((result) => {
-                    console.log('Result: ', result); //return object success
-                    let sql = `insert into chat set tujuan ='${to}',keterangan='${mysql_real_escape_string(pesan)}',terkirim='1' `
-                    let query = conn.query(sql, (err) => {
-                        if (err) throw err;
-                        res.send('{susccess: true,message : "mengirim gambar sukses"}');
-                    })
-                })
-                .catch((erro) => {
-                    console.error('Error when sending: ', erro); //return object error
-                    let sql = `insert into chat set tujuan ='${to}',keterangan='${mysql_real_escape_string(pesan)}',mengirim='1' `
-                    let query = conn.query(sql, (err) => {
-                        if (err) throw err;
-                        res.send('{susccess: true,message : "mengirim gambar sukses"}');
-                    })
+        const number = req.body.number;
+        const caption = req.body.caption;
+        const url = req.body.url;
+        const formatterNumber = phoneNumberFormatter(number);
+        await client
+            .sendImage(
+                formatterNumber,
+                url,
+                'Media Gambar',
+                caption
+            )
+            .then((result) => {
+                let sql = `insert into chat set tujuan ='${formatterNumber}',keterangan='${message}' `
+                let query = con.query(sql, (err) => {
+                    if (err) throw err;
+                    console.log("1 record inserted");
                 });
-        } else {
-            console.log('field required')
-        }
-
+            })
+            .catch((erro) => {
+                console.error('Error when sending: ', erro); //return object error
+            });
     })
 }
 function pDownload(url, dest) {
