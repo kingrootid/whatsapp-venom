@@ -61,12 +61,14 @@ venom
     });
 async function start(client, app) {
     client.onMessage(async (message) => {
+        let buffer = null
+
         if (message.isMedia === true || message.isMMS === true) {
-            const buffer = await client.decryptFile(message);
-            // At this point you can do whatever you want with the buffer
-            // Most likely you want to write it into a file
+            // console.log(message);
+            buffer = await client.decryptFile(message);
             const fileName = `some-file-name.${mime.extension(message.mimetype)}`;
-            await fs.writeFile(fileName, buffer, (err) => {
+            await fs.writeFile(fileName, buffer, { encoding: 'base64' }, function (err) {
+                console.log('File created');
             });
         } else {
             let sql = `insert into pesan set body ='${mysql_real_escape_string(message.body)}',sender='${message.from}', receiver='${message.to}', type='${message.type}', time='${timestamp}' `;
@@ -99,7 +101,7 @@ async function start(client, app) {
                     status: true,
                     response: result
                 });
-                console.log(result.me.wid._serialized);
+                // console.log(result.me.wid._serialized);
                 let sql = `insert into pesan set body ='${mysql_real_escape_string(result.text)}',sender='${result.me.wid._serialized}', receiver='${formatterNumber}', type='${result.type}', time='${timestamp}' `;
                 let query = con.query(sql, (err) => {
                     if (err) throw err;
@@ -133,6 +135,13 @@ async function start(client, app) {
         const caption = req.body.caption;
         const url = req.body.url;
         const formatterNumber = phoneNumberFormatter(number);
+        let mimetype;
+        const attachment = await axios.get(url, {
+            responseType: 'arraybuffer'
+        }).then(response => {
+            mimetype = response.headers['content-type'];
+            return response.data.toString('base64');
+        });
         await client
             .sendImage(
                 formatterNumber,
