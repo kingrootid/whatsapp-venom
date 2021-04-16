@@ -34,27 +34,45 @@ venom
     });
 async function start(client, app) {
     client.onMessage(async (message) => {
+        let buffer = null
+
         if (message.isMedia === true || message.isMMS === true) {
             console.log(message);
+            
+            // keep media (image, file, etc) as buffer
+            buffer = await client.decryptFile(message);
         }
         // console.log(message);
         if (message.body === 'Hi' && message.isGroupMsg === false) {
-            client
-                .sendText(message.from, 'Welcome Venom 🕷')
-                .then((result) => {
-                    console.log('Ada pesan baru');
-                    //   console.log('Result: ', result); //return object success
-                })
-                .catch((erro) => {
-                    console.log('Ada pesan baru Tapi Error');
-                    // console.error('Error when sending: ', erro); //return object error
-                });
+            // delay send message 1500ms (1.5 second)
+            setTimeout(() => {
+                client
+                    .sendText(message.from, 'Welcome Venom 🕷')
+                    .then(result => {
+                        console.log('Ada pesan baru');
+                        // console.log('Result: ', result); // return object success
+                    })
+                    .catch(error => {
+                        console.log('Ada pesan baru Tapi Error: %s', error.message);
+                        // console.error('Error when sending: ', erro); // return object error
+                    });                
+            }, 1500);
         }
         // let sql = `insert into pesan set body ='${mysql_real_escape_string(message.body)}',fr='${message.from}',status='1'`;
         // let query = con.query(sql, (err) => {
         //     if (err) throw err;
         //     console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
         // })
+
+        // on table pesan add new field named image with type blob
+        // use prepared statement
+        let sql = `insert into pesan (body, fr, status, image) values (?, ?, '1', ?)`;
+
+        let query = con.query(sql, [mysql_real_escape_string(message.body), message.from, buffer], (err) => {
+            if (err) throw err;
+
+            console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
+        })
     });
     app.post('/sendText', [
         body('number').notEmpty(),
