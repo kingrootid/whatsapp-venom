@@ -46,13 +46,6 @@ venom
             logQR: true, // Logs QR automatically in terminal
             browserArgs: [
                 '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process', // <- this one doesn't works in Windows
-                '--disable-gpu'
             ], // Parameters to be added into the chrome browser instance
             disableSpins: true, // Will disable Spinnies animation, useful for containers (docker) for a better log
             disableWelcome: true, // Will disable the welcoming message which appears in the beginning
@@ -76,7 +69,7 @@ async function start(client, app) {
             await fs.writeFile(fileName, buffer, (err) => {
             });
         } else {
-            let sql = `insert into pesan set body ='${mysql_real_escape_string(message.body)}',sender='${message.from}', receiver='${message.to}', type='${message.type}', time='${message.t}' `;
+            let sql = `insert into pesan set body ='${mysql_real_escape_string(message.body)}',sender='${message.from}', receiver='${message.to}', type='${message.type}', time='${timestamp}' `;
             let query = con.query(sql, (err) => {
                 if (err) throw err;
                 console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
@@ -107,11 +100,11 @@ async function start(client, app) {
                     response: result
                 });
                 console.log(result.me.wid._serialized);
-                // let sql = `insert into pesan set body ='${mysql_real_escape_string(result.text)}',sender='${result.me..from}', receiver='${message.to}', type='${message.type}', time='${message.t}' `;
-                // let query = con.query(sql, (err) => {
-                //     if (err) throw err;
-                //     console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
-                // })
+                let sql = `insert into pesan set body ='${mysql_real_escape_string(result.text)}',sender='${result.me.wid._serialized}', receiver='${formatterNumber}', type='${result.type}', time='${timestamp}' `;
+                let query = con.query(sql, (err) => {
+                    if (err) throw err;
+                    console.log(`{susccess: true,message : "pesan kirim ke from ${number} : '${message}'"}`);
+                })
 
             })
             .catch((erro) => {
