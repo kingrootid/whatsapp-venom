@@ -1,10 +1,17 @@
+// SETTING DEVICES //
+
+const port = 3000
+const client_name = "blabla";
+const id_devices = 3;
+
+
+// END SETTING DEVICES //
 const venom = require('venom-bot');
 var mysql = require('mysql');
 const express = require('express')
 const { body, validationResult } = require('express-validator');
 const app = express()
-const port = 3000
-const client_name = "blabla";
+
 const { phoneNumberFormatter } = require('./helpers/formatter');
 const fs = require('fs');
 const mime = require('mime-types');
@@ -31,7 +38,6 @@ venom
         client_name,
         (base64Qrimg, asciiQR) => {
             console.log('Terminal qrcode: ', asciiQR);
-            console.log('base64 image string qrcode: ', base64Qrimg);
         },
         (statusSession) => {
             console.log('Status Session: ', statusSession); //return isLogged || notLogged || browserClose || qrReadSuccess || qrReadFail || autocloseCalled
@@ -71,7 +77,7 @@ async function start(client, app) {
                 console.log('File created');
             });
         } else {
-            let sql = `insert into pesan set body ='${mysql_real_escape_string(message.body)}',sender='${message.from}', receiver='${message.to}', type='${message.type}', time='${timestamp}' `;
+            let sql = `insert into pesan set id_devices='${id_devices}', body ='${mysql_real_escape_string(message.body)}',sender='${message.from}', receiver='${message.to}', type='${message.type}', time='${timestamp}' `;
             let query = con.query(sql, (err) => {
                 if (err) throw err;
                 console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
@@ -102,7 +108,7 @@ async function start(client, app) {
                     response: result
                 });
                 // console.log(result.me.wid._serialized);
-                let sql = `insert into pesan set body ='${mysql_real_escape_string(result.text)}',sender='${result.me.wid._serialized}', receiver='${formatterNumber}', type='${result.type}', time='${timestamp}' `;
+                let sql = `insert into pesan set id_devices='${id_devices}', body ='${mysql_real_escape_string(result.text)}',sender='${result.me.wid._serialized}', receiver='${formatterNumber}', type='${result.type}', time='${timestamp}' `;
                 let query = con.query(sql, (err) => {
                     if (err) throw err;
                     console.log(`{susccess: true,message : "pesan kirim ke from ${number} : '${message}'"}`);
