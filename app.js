@@ -6,15 +6,19 @@ const id_devices = 3;
 
 
 // END SETTING DEVICES //
+
+
 const venom = require('venom-bot');
 var mysql = require('mysql');
 const express = require('express')
 const { body, validationResult } = require('express-validator');
 const app = express()
-
+const imageToBase64 = require('image-to-base64');
 const { phoneNumberFormatter } = require('./helpers/formatter');
 const fs = require('fs');
 const mime = require('mime-types');
+const qr = require('qrcode-terminal');
+const axios = require('axios');
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`)
 })
@@ -36,8 +40,8 @@ con.connect(function (err) {
 venom
     .create(
         client_name,
-        (base64Qrimg, asciiQR) => {
-            console.log('Terminal qrcode: ', asciiQR);
+        (asciiQR) => {
+            console.log('Terminal qrcode: ');
         },
         (statusSession) => {
             console.log('Status Session: ', statusSession); //return isLogged || notLogged || browserClose || qrReadSuccess || qrReadFail || autocloseCalled
@@ -74,16 +78,31 @@ async function start(client, app) {
             buffer = await client.decryptFile(message);
             const fileName = `some-file-name.${mime.extension(message.mimetype)}`;
             await fs.writeFile(fileName, buffer, { encoding: 'base64' }, function (err) {
-                console.log('File created');
+                imageToBase64(fileName) // Path to the image
+                    .then(
+                        (response) => {
+                            let sql = `insert into pesan set id_devices='${id_devices}', body ='${mysql_real_escape_string(message.caption)}', attachment='${response}', sender='${message.from}', receiver='${message.to}', type='image', time='${timestamp}' `;
+                            let query = con.query(sql, (err) => {
+                                if (err) throw err;
+                                console.log(`{susccess: true,message : "pesan gambar masuk from ${message.from} : '${message.caption}'"}`);
+                            })
+                        }
+                    )
+                    .catch(
+                        (error) => {
+                            console.log(error); // Logs an error if there was one
+                        }
+                    )
             });
         } else {
-            let sql = `insert into pesan set id_devices='${id_devices}', body ='${mysql_real_escape_string(message.body)}',sender='${message.from}', receiver='${message.to}', type='${message.type}', time='${timestamp}' `;
+            let sql = `insert into pesan set id_devices='${id_devices}', body ='${mysql_real_escape_string(message.body)}',sender='${message.from}', receiver='${message.to}', type='text', time='${timestamp}' `;
             let query = con.query(sql, (err) => {
                 if (err) throw err;
                 console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
             })
         }
     });
+
     app.post('/sendText', [
         body('number').notEmpty(),
         body('message').notEmpty()
@@ -108,7 +127,7 @@ async function start(client, app) {
                     response: result
                 });
                 // console.log(result.me.wid._serialized);
-                let sql = `insert into pesan set id_devices='${id_devices}', body ='${mysql_real_escape_string(result.text)}',sender='${result.me.wid._serialized}', receiver='${formatterNumber}', type='${result.type}', time='${timestamp}' `;
+                let sql = `insert into pesan set id_devices='${id_devices}', body ='${mysql_real_escape_string(result.text)}',sender='${result.me.wid._serialized}', receiver='${formatterNumber}', type='text', time='${timestamp}' `;
                 let query = con.query(sql, (err) => {
                     if (err) throw err;
                     console.log(`{susccess: true,message : "pesan kirim ke from ${number} : '${message}'"}`);
@@ -140,14 +159,12 @@ async function start(client, app) {
         const number = req.body.number;
         const caption = req.body.caption;
         const url = req.body.url;
-        const formatterNumber = phoneNumberFormatter(number);
-        let mimetype;
         const attachment = await axios.get(url, {
             responseType: 'arraybuffer'
         }).then(response => {
-            mimetype = response.headers['content-type'];
             return response.data.toString('base64');
         });
+        const formatterNumber = phoneNumberFormatter(number);
         await client
             .sendImage(
                 formatterNumber,
@@ -156,15 +173,26 @@ async function start(client, app) {
                 caption
             )
             .then((result) => {
-                let sql = `insert into chat set tujuan ='${formatterNumber}',keterangan='${message}' `
+                res.status(200).json({
+                    status: true,
+                    response: result
+                });
+                // console.log(result.me.wid._serialized);
+
+                let sql = `insert into pesan set id_devices='${id_devices}', attachment='${attachment}', body ='${mysql_real_escape_string(result.text)}',sender='${result.me.wid._serialized}', receiver='${formatterNumber}', type='text', time='${timestamp}' `;
                 let query = con.query(sql, (err) => {
                     if (err) throw err;
-                    console.log("1 record inserted");
-                });
+                    console.log(`{susccess: true,message : "pesan kirim ke from ${number} : '${caption}'"}`);
+                })
+
             })
             .catch((erro) => {
-                console.error('Error when sending: ', erro); //return object error
+                res.status(500).json({
+                    status: false,
+                    response: erro
+                });
             });
+
     })
 }
 function pDownload(url, dest) {

@@ -9,12 +9,13 @@
     "express": "^4.17.1",
     "express-validator": "^6.10.0",
     "fs": "0.0.1-security",
+    "image-to-base64": "^2.2.0",
     "mime-type": "^4.0.0",
     "mysql": "^2.18.1",
     "mysql2": "^2.2.5",
+    "qrcode-terminal": "^0.12.0",
     "sequelize": "^6.6.2",
-    "venom-bot": "^3.0.13",
-    "venom-bot-mutation": "^1.0.2"
+    "venom-bot": "^3.0.13"
   },
   "devDependencies": {},
   "scripts": {
