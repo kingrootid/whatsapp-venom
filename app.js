@@ -2,14 +2,12 @@
 
 const port = 3000
 const client_name = "blabla";
-const id_devices = 3;
 
 
 // END SETTING DEVICES //
 
 
 const venom = require('venom-bot');
-var mysql = require('mysql');
 const express = require('express')
 const { body, validationResult } = require('express-validator');
 const app = express()
@@ -24,19 +22,6 @@ app.listen(port, () => {
 })
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const currentDate = new Date();
-const timestamp = currentDate.getTime();
-var con = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "whatsapp"
-});
-
-con.connect(function (err) {
-    if (err) throw err;
-    console.log("Connected!");
-});
 venom
     .create(
         client_name,
@@ -72,35 +57,8 @@ venom
 async function start(client, app) {
     client.onMessage(async (message) => {
         let buffer = null
-
-        if (message.isMedia === true || message.isMMS === true) {
-            // console.log(message);
-            buffer = await client.decryptFile(message);
-            const fileName = `some-file-name.${mime.extension(message.mimetype)}`;
-            await fs.writeFile(fileName, buffer, { encoding: 'base64' }, function (err) {
-                imageToBase64(fileName) // Path to the image
-                    .then(
-                        (response) => {
-                            let sql = `insert into pesan set id_devices='${id_devices}', body ='${mysql_real_escape_string(message.caption)}', attachment='${response}', sender='${message.from}', receiver='${message.to}', type='image', time='${timestamp}' `;
-                            let query = con.query(sql, (err) => {
-                                if (err) throw err;
-                                console.log(`{susccess: true,message : "pesan gambar masuk from ${message.from} : '${message.caption}'"}`);
-                            })
-                        }
-                    )
-                    .catch(
-                        (error) => {
-                            console.log(error); // Logs an error if there was one
-                        }
-                    )
-            });
-        } else {
-            let sql = `insert into pesan set id_devices='${id_devices}', body ='${mysql_real_escape_string(message.body)}',sender='${message.from}', receiver='${message.to}', type='text', time='${timestamp}' `;
-            let query = con.query(sql, (err) => {
-                if (err) throw err;
-                console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
-            })
-        }
+         console.log(`{susccess: true,message : "pesan masuk from ${message.from} : '${message.body}'"}`);
+        })
     });
 
     app.post('/sendText', [
@@ -126,10 +84,6 @@ async function start(client, app) {
                     status: true,
                     response: result
                 });
-                // console.log(result.me.wid._serialized);
-                let sql = `insert into pesan set id_devices='${id_devices}', body ='${mysql_real_escape_string(result.text)}',sender='${result.me.wid._serialized}', receiver='${formatterNumber}', type='text', time='${timestamp}' `;
-                let query = con.query(sql, (err) => {
-                    if (err) throw err;
                     console.log(`{susccess: true,message : "pesan kirim ke from ${number} : '${message}'"}`);
                 })
 
@@ -177,11 +131,6 @@ async function start(client, app) {
                     status: true,
                     response: result
                 });
-                // console.log(result.me.wid._serialized);
-
-                let sql = `insert into pesan set id_devices='${id_devices}', attachment='${attachment}', body ='${mysql_real_escape_string(result.text)}',sender='${result.me.wid._serialized}', receiver='${formatterNumber}', type='text', time='${timestamp}' `;
-                let query = con.query(sql, (err) => {
-                    if (err) throw err;
                     console.log(`{susccess: true,message : "pesan kirim ke from ${number} : '${caption}'"}`);
                 })
 
@@ -194,66 +143,4 @@ async function start(client, app) {
             });
 
     })
-}
-function pDownload(url, dest) {
-    var file = fs.createWriteStream(dest);
-    return new Promise((resolve, reject) => {
-        var responseSent = false; // flag to make sure that response is sent only once.
-        if (url.includes('https')) {
-            https.get(url, response => {
-                response.pipe(file);
-                file.on('finish', () => {
-                    file.close(() => {
-                        if (responseSent) return;
-                        responseSent = true;
-                        resolve();
-                    });
-                });
-            }).on('error', err => {
-                if (responseSent) return;
-                responseSent = true;
-                reject(err);
-            });
-        } else {
-            http.get(url, response => {
-                response.pipe(file);
-                file.on('finish', () => {
-                    file.close(() => {
-                        if (responseSent) return;
-                        responseSent = true;
-                        resolve();
-                    });
-                });
-            }).on('error', err => {
-                if (responseSent) return;
-                responseSent = true;
-                reject(err);
-            });
-        }
-
-    });
-}
-function mysql_real_escape_string(str) {
-    return str.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function (char) {
-        switch (char) {
-            case "\0":
-                return "\\0";
-            case "\x08":
-                return "\\b";
-            case "\x09":
-                return "\\t";
-            case "\x1a":
-                return "\\z";
-            case "\n":
-                return "\\n";
-            case "\r":
-                return "\\r";
-            case "\"":
-            case "'":
-            case "\\":
-            case "%":
-                return "\\" + char; // prepends a backslash to backslash, percent,
-            // and double/single quotes
-        }
-    });
 }
